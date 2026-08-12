@@ -110,3 +110,76 @@ function showPopup(content) {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") hidePopup();
 });
+
+// ── F-02 파일별 요약 ─────────────────────────────────────────
+// 변경된 각 파일 헤더에 [🔍 요약] 버튼을 붙이고, 누르면 그 파일 diff를 요약합니다.
+// GitHub는 CSS-module로 클래스 이름이 해시(예: Diff-module__diff__rx9XH)라,
+// [class*="..."] 부분 일치로 잡습니다. 구버전(.file) view도 fallback으로 지원.
+
+function findFileBlocks() {
+  const nb = document.querySelectorAll('[class*="Diff-module__diffTargetable"]');
+  if (nb.length) return { blocks: nb, mode: "new" };
+  return { blocks: document.querySelectorAll(".file"), mode: "classic" };
+}
+function getFileHeader(block, mode) {
+  return mode === "new"
+    ? block.querySelector('[class*="DiffFileHeader-module__diff-file-header"]')
+    : block.querySelector(".file-header");
+}
+function getFileDiffText(block, mode) {
+  const el =
+    mode === "new"
+      ? block.querySelector('[class*="DiffLines-module__"]')
+      : block.querySelector(".diff-table, .js-file-content");
+  return (el ? el.innerText : block.innerText).slice(0, 4000);
+}
+
+let lastFileCount = -1;
+function enhanceFiles() {
+  const { blocks, mode } = findFileBlocks();
+  if (blocks.length !== lastFileCount) {
+    console.log("[PReview] 파일 감지:", blocks.length, "(" + mode + ")");
+    lastFileCount = blocks.length;
+  }
+  blocks.forEach((block) => {
+    if (block.dataset.previewDone) return; // 이미 처리한 파일은 건너뜀
+    const header = getFileHeader(block, mode);
+    if (!header) return;
+    block.dataset.previewDone = "1";
+
+    const wrap = document.createElement("span");
+    wrap.className = "preview-file-badge preview-ui";
+
+    const btn2 = document.createElement("button");
+    btn2.className = "preview-file-btn";
+    btn2.textContent = "🔍 요약";
+
+    const out = document.createElement("span");
+    out.className = "preview-file-summary";
+
+    btn2.addEventListener("click", async () => {
+      out.textContent = " 요약 중...";
+      const diffText = getFileDiffText(block, mode);
+      const res = await chrome.runtime.sendMessage({
+        action: "ai",
+        type: "fileSummary",
+        text: diffText,
+      });
+      if (!res) return (out.textContent = " (확장 새로고침 필요)");
+      if (res.error === "NO_KEY") return (out.textContent = " (API 키 설정 필요)");
+      out.textContent = res.error ? " 오류: " + res.error : " " + res.text;
+    });
+
+    wrap.appendChild(btn2);
+    wrap.appendChild(out);
+    header.appendChild(wrap);
+  });
+}
+
+// 처음 로드 + 이후 동적으로 파일이 추가될 때(스크롤/탭 전환)도 처리 (300ms 디바운스)
+enhanceFiles();
+let fileScanTimer = null;
+new MutationObserver(() => {
+  clearTimeout(fileScanTimer);
+  fileScanTimer = setTimeout(enhanceFiles, 300);
+}).observe(document.body, { childList: true, subtree: true });
