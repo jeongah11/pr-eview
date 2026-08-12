@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>PReview 설정</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 460px; margin: 40px auto; padding: 0 16px; }
+      h1 { font-size: 18px; }
+      label { display: block; margin: 16px 0 6px; font-weight: 600; }
+      input { width: 100%; padding: 8px; box-sizing: border-box; }
+      button { margin-top: 16px; padding: 8px 16px; cursor: pointer; }
+      .hint { color: #666; font-size: 13px; margin-top: 4px; }
+      #status { margin-top: 12px; color: #1a7f37; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <h1>PReview 설정</h1>
+    <p class="hint">
+      Google AI Studio에서 발급한 Gemini API 키를 넣으세요.
+      키는 이 브라우저에만 저장되고, AI 호출 시 Google로만 전송됩니다.
+    </p>
+
+    <label for="apiKey">Gemini API 키</label>
+    <input id="apiKey" type="password" placeholder="AIza..." />
+
+    <button id="save">저장</button>
+    <div id="status"></div>
+
+    <script src="options.js"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "PReview",
+  "version": "0.1.0",
+  "description": "GitHub PR에서 코드 이해를 돕는 리뷰 보조 도구",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*/pull/*",
+        "https://github.com/*/compare/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
