@@ -74,3 +74,29 @@
   font-size: 12px;
   color: #444;
 }
+
+/* F-03 질문 도우미 버튼 */
+.preview-q-btn {
+  display: inline-block;
+  align-self: flex-start; /* flex 컬럼 부모가 세로로 늘리는 것 방지 */
+  flex: 0 0 auto; /* flex 컨테이너가 눌러 좁히는 것 방지 */
+  width: auto;
+  max-width: max-content;
+  white-space: nowrap; /* 글자가 세로로 줄바꿈되지 않게 */
+  margin: 8px 6px 8px 4px; /* 구석에 붙지 않게 여백 */
+  background: #eaf1f8;
+  color: #1f3a5f;
+  border: 1px solid #1f3a5f;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.preview-q-btn:hover {
+  background: #dbe6f2;
+}
+.preview-q-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

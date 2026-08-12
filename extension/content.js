@@ -176,10 +176,79 @@ function enhanceFiles() {
   });
 }
 
-// 처음 로드 + 이후 동적으로 파일이 추가될 때(스크롤/탭 전환)도 처리 (300ms 디바운스)
-enhanceFiles();
-let fileScanTimer = null;
+// ── F-03 질문 도우미 ─────────────────────────────────────────
+// 리뷰 코멘트 입력창(textarea) 옆에 [✨ 질문] 버튼을 붙이고,
+// 누르면 코드 맥락으로 질문 초안을 만들어 입력창에 넣습니다.
+
+function isCommentTextarea(t) {
+  const hay = (
+    (t.placeholder || "") + " " + (t.getAttribute("aria-label") || "") + " " +
+    (t.name || "") + " " + (t.className || "")
+  ).toLowerCase();
+  return /comment|코멘트|leave a comment|reply|review|답글/.test(hay);
+}
+
+// React가 관리하는 textarea도 값이 반영되도록 네이티브 setter + input 이벤트를 씁니다.
+// 기존 내용을 지우고 새 질문으로 교체합니다(여러 번 눌러도 쌓이지 않음).
+function insertIntoTextarea(t, text) {
+  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set;
+  setter.call(t, text);
+  t.dispatchEvent(new Event("input", { bubbles: true }));
+  t.focus();
+}
+
+function flash(btn, msg, original) {
+  btn.textContent = msg;
+  setTimeout(() => (btn.textContent = original), 2000);
+}
+
+async function onQuestion(textarea, btn) {
+  const original = "✨ 질문";
+  btn.textContent = "✨ 생성 중...";
+  btn.disabled = true;
+
+  // 맥락: 드래그한 선택 우선, 없으면 이 코멘트가 속한 파일 diff
+  let ctx = window.getSelection().toString().trim();
+  if (!ctx) {
+    const block = textarea.closest('[class*="Diff-module__diffTargetable"], .file');
+    ctx = block ? getFileDiffText(block, block.matches(".file") ? "classic" : "new") : document.title;
+  }
+
+  const res = await chrome.runtime.sendMessage({
+    action: "ai",
+    type: "question",
+    text: ctx.slice(0, 4000),
+  });
+
+  btn.disabled = false;
+  if (!res) return flash(btn, "⚠️ 새로고침", original);
+  if (res.error === "NO_KEY") return flash(btn, "⚠️ 키 설정", original);
+  if (res.error) return flash(btn, "⚠️ 오류", original);
+  insertIntoTextarea(textarea, res.text);
+  btn.textContent = original;
+}
+
+function enhanceTextareas() {
+  document.querySelectorAll("textarea").forEach((t) => {
+    if (t.dataset.previewQ || !isCommentTextarea(t)) return;
+    t.dataset.previewQ = "1";
+    const qbtn = document.createElement("button");
+    qbtn.type = "button";
+    qbtn.className = "preview-q-btn preview-ui";
+    qbtn.textContent = "✨ 질문";
+    qbtn.addEventListener("click", () => onQuestion(t, qbtn));
+    t.insertAdjacentElement("beforebegin", qbtn);
+  });
+}
+
+// ── 스캐너: 파일 요약 + 질문 버튼을 함께 처리 (300ms 디바운스) ──
+function scan() {
+  enhanceFiles();
+  enhanceTextareas();
+}
+scan();
+let scanTimer = null;
 new MutationObserver(() => {
-  clearTimeout(fileScanTimer);
-  fileScanTimer = setTimeout(enhanceFiles, 300);
+  clearTimeout(scanTimer);
+  scanTimer = setTimeout(scan, 300);
 }).observe(document.body, { childList: true, subtree: true });
