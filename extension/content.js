@@ -241,10 +241,50 @@ function enhanceTextareas() {
   });
 }
 
-// ── 스캐너: 파일 요약 + 질문 버튼을 함께 처리 (300ms 디바운스) ──
+// ── F-04 PR 본문 초안 ─────────────────────────────────────────
+// PR 생성(compare) 화면의 본문 입력창 위에 [✨ 본문 초안] 버튼을 붙이고,
+// 누르면 변경 diff를 읽어 목적/변경점/코드설명/용어설명/리뷰포인트 초안을 넣습니다.
+
+function enhancePRBody() {
+  if (!location.pathname.includes("/compare/")) return;
+  const body = document.querySelector(
+    '#pull_request_body, textarea[name="pull_request[body]"], textarea[aria-label*="escription"], textarea[placeholder*="escription"]'
+  );
+  if (!body || body.dataset.previewBody) return;
+  body.dataset.previewBody = "1";
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "preview-q-btn preview-ui";
+  btn.textContent = "✨ 본문 초안";
+  btn.addEventListener("click", () => onPRBody(body, btn));
+  body.insertAdjacentElement("beforebegin", btn);
+}
+
+async function onPRBody(body, btn) {
+  const original = "✨ 본문 초안";
+  btn.textContent = "✨ 생성 중..."; btn.disabled = true;
+
+  // compare 화면 아래 표시된 변경 diff를 맥락으로 모읍니다.
+  const { blocks, mode } = findFileBlocks();
+  let ctx = "";
+  blocks.forEach((b) => { ctx += getFileDiffText(b, mode) + "\n\n"; });
+  ctx = (ctx.trim() || document.title).slice(0, 8000);
+
+  const res = await chrome.runtime.sendMessage({ action: "ai", type: "prBody", text: ctx });
+  btn.disabled = false;
+  if (!res) return flash(btn, "⚠️ 새로고침", original);
+  if (res.error === "NO_KEY") return flash(btn, "⚠️ 키 설정", original);
+  if (res.error) return flash(btn, "⚠️ 오류", original);
+  insertIntoTextarea(body, res.text);
+  btn.textContent = original;
+}
+
+// ── 스캐너: 파일 요약 + 질문 + PR 본문 버튼을 함께 처리 (300ms 디바운스) ──
 function scan() {
   enhanceFiles();
   enhanceTextareas();
+  enhancePRBody();
 }
 scan();
 let scanTimer = null;
