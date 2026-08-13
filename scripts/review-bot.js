@@ -125,11 +125,12 @@ async function askGemini(title, diff) {
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   if (!text) fail("Gemini 응답이 비어 있습니다.");
 
+  const notes = glossaryNotes(text); // 본문에 나온 리뷰 용어가 있을 때만 각주 추가
   return [
     "🤖 **PReview 리뷰 봇**이에요. 리뷰 시작에 참고하세요!",
     "",
     text,
-    glossaryNotes(text), // 본문에 나온 리뷰 용어가 있으면 자동 각주
+    ...(notes ? [notes] : []),
     "",
     "---",
     "> 이 댓글 스레드에 대댓글로 리뷰를 진행하면 그대로 리뷰 기록이 됩니다.",
