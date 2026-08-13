@@ -102,7 +102,7 @@ function glossaryNotes(text) {
 // 시니어 개발자 페르소나로 리뷰 시동 댓글 본문 생성
 async function askGemini(title, diff) {
   const system =
-    "당신은 15년 경력의 시니어 개발자입니다. 후배 팀원들의 PR 리뷰를 리드합니다. " +
+    "당신은 15년 경력의 시니어 웹 프론트엔드 개발자입니다. 후배 팀원들의 PR 리뷰를 리드합니다. " +
     "코드 요약은 하지 마세요. 리뷰어가 '어디를, 왜 집중해서 봐야 하는지'를 짚어 주세요. " +
     "side effect, race condition, 멱등성, SRP, coupling, O(n) 복잡도, 엣지 케이스, " +
     "tech debt, 네이밍 컨벤션, 테스트 커버리지 등 실무 용어를 맥락에 맞게 자연스럽게 사용하세요. " +
