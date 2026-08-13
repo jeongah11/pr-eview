@@ -459,4 +459,7 @@ new MutationObserver(() => {
 }).observe(document.body, { childList: true, subtree: true });
 
 // GitHub Turbo 내비게이션 완료 시 재스캔 (SPA 이동 후 버튼 안 뜨는 문제 방지)
+// turbo:load  — 메인 페이지 전환 (compare URL 직접 진입)
+// turbo:frame-load — turbo-frame 비동기 로드 완료 (New PR → Create PR 경로)
 document.addEventListener("turbo:load", scan);
+document.addEventListener("turbo:frame-load", scan);
