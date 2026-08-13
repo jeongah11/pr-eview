@@ -237,7 +237,16 @@ function enhanceTextareas() {
     qbtn.className = "preview-q-btn preview-ui";
     qbtn.textContent = "✨ 질문";
     qbtn.addEventListener("click", () => onQuestion(t, qbtn));
-    t.insertAdjacentElement("beforebegin", qbtn);
+    // 새 GitHub: 코멘트 입력창(.CommentBox-container, position:relative) 안 오른쪽 위에
+    // 고정폭으로 띄웁니다. textarea 오른쪽에 여백을 줘서 글자가 버튼 밑으로 들어가지 않게 합니다.
+    const container = t.closest(".CommentBox-container");
+    if (container) {
+      qbtn.classList.add("preview-q-float");
+      container.appendChild(qbtn);
+      t.style.paddingRight = "100px";
+    } else {
+      t.insertAdjacentElement("beforebegin", qbtn); // 구버전 fallback
+    }
   });
 }
 

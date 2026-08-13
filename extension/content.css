@@ -100,6 +100,20 @@
   opacity: 0.6;
   cursor: default;
 }
+/* F-03 질문 버튼: 코멘트 입력창 오른쪽 위 고정 배치 + 고정 폭(라벨 바뀌어도 안 흔들림) */
+.preview-q-btn.preview-q-float {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 2;
+  margin: 0;
+  width: 84px;
+  min-width: 84px;
+  max-width: none;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 3px 0;
+}
 
 /* F-05 용어 하이라이트 + 툴팁 */
 .preview-term {
