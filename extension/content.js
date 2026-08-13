@@ -457,3 +457,6 @@ new MutationObserver(() => {
   clearTimeout(scanTimer);
   scanTimer = setTimeout(scan, 300);
 }).observe(document.body, { childList: true, subtree: true });
+
+// GitHub Turbo 내비게이션 완료 시 재스캔 (SPA 이동 후 버튼 안 뜨는 문제 방지)
+document.addEventListener("turbo:load", scan);
