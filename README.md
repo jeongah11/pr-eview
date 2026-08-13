@@ -26,21 +26,30 @@ GitHub Pull Request 화면에서 코드 리뷰를 도와주는 도구입니다.
 
 1. [Google AI Studio](https://aistudio.google.com/apikey) 접속
 2. **Get API key → Create API key** 클릭
-3. 생성된 키를 복사해 두기
+3. 생성된 키를 복사한 뒤 **메모장 등 텍스트 파일에 저장해 두세요**
+
+> **키를 두 곳에 입력해야 합니다** — 크롬 확장 옵션(1단계)과 GitHub Actions Secret(2단계). 창을 닫기 전에 파일에 저장해 두지 않으면 나중에 다시 발급해야 합니다.
 
 ---
 
 ## 1. 크롬 확장 설치
 
 ### 설치
-1. 이 저장소를 로컬에 클론합니다.
+1. 저장소를 담을 폴더를 먼저 만들고 그 안으로 이동합니다.
+   ```bash
+   # 원하는 위치에서 실행 (예: 바탕화면)
+   mkdir pr-eview
+   cd pr-eview
    ```
-   git clone https://github.com/jeongah11/pr-eview.git
+2. 이 저장소를 클론합니다.
+   ```bash
+   git clone https://github.com/jeongah11/pr-eview.git .
    ```
-2. Chrome 주소창에 `chrome://extensions` 입력
-3. 오른쪽 위 **개발자 모드** 토글 켜기
-4. **압축해제된 확장 프로그램을 로드** 클릭 → 클론한 폴더 안의 `extension/` 폴더 선택
-5. PReview 확장이 목록에 나타나면 설치 완료
+   > 끝의 `.`은 현재 폴더 안에 바로 받는다는 뜻입니다. 생략하면 `pr-eview/pr-eview/`처럼 폴더가 중첩됩니다.
+3. Chrome 주소창에 `chrome://extensions` 입력
+4. 오른쪽 위 **개발자 모드** 토글 켜기
+5. **압축해제된 확장 프로그램을 로드** 클릭 → 클론한 폴더 안의 `extension/` 폴더 선택
+6. PReview 확장이 목록에 나타나면 설치 완료
 
 ### API 키 등록
 1. Chrome 툴바의 PReview 아이콘 우클릭 → **옵션** (또는 확장 관리 페이지에서 **세부정보 → 확장 프로그램 옵션**)
