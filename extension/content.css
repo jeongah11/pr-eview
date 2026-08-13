@@ -100,3 +100,36 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* F-05 용어 하이라이트 + 툴팁 */
+.preview-term {
+  border-bottom: 1px dotted #1f6feb;
+  cursor: help;
+}
+#preview-tooltip {
+  position: absolute;
+  z-index: 99999;
+  max-width: 320px;
+  background: #1f2937;
+  color: #f3f4f6;
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.preview-tip-term {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 4px;
+  color: #fff;
+}
+.preview-tip-def {
+  margin-bottom: 6px;
+}
+.preview-tip-ex {
+  color: #a9b4c2;
+  font-size: 11px;
+  border-top: 1px solid #374151;
+  padding-top: 5px;
+}

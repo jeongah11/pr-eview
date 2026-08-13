@@ -8,6 +8,21 @@ const MODEL = "gemini-flash-lite-latest";
 const ENDPOINT = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
 
+// 용어사전(glossary.json)을 한 번만 읽어 캐시합니다.
+// content script는 확장 안의 파일을 직접 fetch 하려면 web_accessible_resources 등록이
+// 필요하지만, 여기 background(서비스 워커)는 자기 파일을 자유롭게 읽을 수 있어 이 경로가 깔끔합니다.
+let glossaryCache = null;
+async function getGlossary() {
+  if (glossaryCache) return { glossary: glossaryCache };
+  try {
+    const res = await fetch(chrome.runtime.getURL("glossary.json"));
+    glossaryCache = await res.json();
+    return { glossary: glossaryCache };
+  } catch (e) {
+    return { error: `용어사전 로드 실패: ${e.message}` };
+  }
+}
+
 // 이 키로 generateContent를 지원하는 모델 목록을 가져옵니다.
 async function listModels() {
   const { apiKey } = await chrome.storage.local.get(["apiKey"]);
@@ -110,6 +125,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.action === "listModels") {
     listModels().then(sendResponse);
+    return true;
+  }
+  if (msg && msg.action === "glossary") {
+    getGlossary().then(sendResponse);
     return true;
   }
 });

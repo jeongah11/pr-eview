@@ -10,6 +10,9 @@
 
 const fs = require("fs");
 
+// F-08 용어사전 — 확장과 같은 단일 파일을 봇도 읽습니다(한 파일 = 하나의 진실).
+const GLOSSARY = require("../extension/glossary.json");
+
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const REPO = process.env.GITHUB_REPOSITORY;
@@ -58,6 +61,44 @@ async function getDiff(owner, repo, num) {
   return await res.text();
 }
 
+// 용어사전 매처를 만듭니다. 확장(content.js)과 같은 규칙:
+// 별칭(aka)+대표어를 쓰되, 한글 2글자 이하 일반 단어(승인·충돌 등)는 오탐이 많아 제외.
+function buildTermMatcher() {
+  const map = {};
+  const forms = [];
+  for (const key of Object.keys(GLOSSARY)) {
+    const e = GLOSSARY[key];
+    const primary = e.term.split(" (")[0].trim();
+    for (const cand of [primary, ...(e.aka || [])]) {
+      const s = (cand || "").trim();
+      if (!s) continue;
+      if (/[가-힣]/.test(s) && s.replace(/\s/g, "").length <= 2) continue;
+      const low = s.toLowerCase();
+      if (!(low in map)) {
+        map[low] = key;
+        forms.push(s);
+      }
+    }
+  }
+  forms.sort((a, b) => b.length - a.length);
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = forms.map((f) =>
+    /^[A-Za-z]/.test(f) ? `(?<![A-Za-z])${esc(f)}(?![A-Za-z])` : esc(f)
+  );
+  return { re: new RegExp(parts.join("|"), "gi"), map };
+}
+
+// 리뷰 댓글 본문에 등장한 용어를 모아 "용어 노트" 마크다운을 만듭니다(없으면 빈 문자열).
+function glossaryNotes(text) {
+  const { re, map } = buildTermMatcher();
+  const seen = new Set();
+  let m;
+  while ((m = re.exec(text))) seen.add(map[m[0].toLowerCase()]);
+  if (!seen.size) return "";
+  const lines = [...seen].map((key) => `- **${GLOSSARY[key].term}**: ${GLOSSARY[key].def}`);
+  return ["", "### 📖 용어 노트", ...lines].join("\n");
+}
+
 // 시니어 개발자 페르소나로 리뷰 시동 댓글 본문 생성
 async function askGemini(title, diff) {
   const system =
@@ -88,6 +129,7 @@ async function askGemini(title, diff) {
     "🤖 **PReview 리뷰 봇**이에요. 리뷰 시작에 참고하세요!",
     "",
     text,
+    glossaryNotes(text), // 본문에 나온 리뷰 용어가 있으면 자동 각주
     "",
     "---",
     "> 이 댓글 스레드에 대댓글로 리뷰를 진행하면 그대로 리뷰 기록이 됩니다.",
