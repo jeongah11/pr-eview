@@ -1,0 +1,142 @@
+{
+  "lgtm": {
+    "term": "LGTM",
+    "aka": ["Looks Good To Me"],
+    "category": "리뷰 관례",
+    "def": "\"보기 좋네요, 승인할게요\"라는 뜻의 리뷰 관용구입니다. Looks Good To Me의 약자예요.",
+    "example": "리뷰어가 코멘트에 \"LGTM 👍\"만 남기면 이 변경을 승인한다는 신호입니다."
+  },
+  "nit": {
+    "term": "nit",
+    "aka": ["nitpick", "니트"],
+    "category": "리뷰 관례",
+    "def": "\"사소한 지적\"이라는 뜻입니다. 꼭 고치지 않아도 되는 가벼운 의견에 붙여요.",
+    "example": "\"nit: 변수 이름 조금 더 명확했으면 좋겠어요\" = 참고만 하라는 가벼운 제안."
+  },
+  "wip": {
+    "term": "WIP",
+    "aka": ["Work In Progress", "작업 중"],
+    "category": "리뷰 관례",
+    "def": "아직 작업 중이라 리뷰/머지 준비가 안 된 상태를 뜻합니다. Work In Progress의 약자예요.",
+    "example": "PR 제목이 \"[WIP] 로그인 화면\"이면 아직 완성 전이니 참고만 하라는 의미."
+  },
+  "approve": {
+    "term": "승인 (Approve)",
+    "aka": ["approve", "어프루브"],
+    "category": "리뷰 관례",
+    "def": "리뷰어가 이 변경을 병합해도 좋다고 동의하는 것입니다. GitHub 리뷰의 한 종류예요.",
+    "example": "리뷰어 2명이 Approve 하면 보통 머지할 수 있게 됩니다."
+  },
+  "request-changes": {
+    "term": "변경 요청 (Request changes)",
+    "aka": ["request changes", "리퀘스트 체인지"],
+    "category": "리뷰 관례",
+    "def": "머지 전에 고쳤으면 하는 부분이 있다고 표시하는 리뷰 결과입니다.",
+    "example": "Request changes가 걸리면 지적된 부분을 반영한 뒤 다시 리뷰를 받습니다."
+  },
+  "ptal": {
+    "term": "PTAL",
+    "aka": ["Please Take A Look"],
+    "category": "리뷰 관례",
+    "def": "\"한번 봐 주세요\"라는 뜻의 요청 표현입니다. Please Take A Look의 약자예요.",
+    "example": "수정을 마친 뒤 \"반영했어요, PTAL 🙏\" 처럼 다시 리뷰를 부탁할 때 씁니다."
+  },
+  "side-effect": {
+    "term": "사이드 이펙트",
+    "aka": ["side effect", "부수 효과"],
+    "category": "코드 개념",
+    "def": "함수가 반환값 외에 바깥 상태(전역변수·화면·파일 등)를 바꾸는 것을 말합니다.",
+    "example": "\"이 함수 side effect 있나요?\" = 함수 밖에 영향을 주는지 묻는 질문."
+  },
+  "edge-case": {
+    "term": "엣지 케이스",
+    "aka": ["edge case", "경계 조건"],
+    "category": "코드 개념",
+    "def": "빈 값, 0, 아주 큰 값처럼 잘 안 일어나지만 문제가 되기 쉬운 예외 상황을 뜻합니다.",
+    "example": "\"입력이 빈 배열인 엣지 케이스도 처리되나요?\" 같은 리뷰 질문에 나옵니다."
+  },
+  "race-condition": {
+    "term": "레이스 컨디션",
+    "aka": ["race condition", "경쟁 상태"],
+    "category": "코드 개념",
+    "def": "두 작업의 실행 순서에 따라 결과가 달라져 버그가 생기는 상황입니다.",
+    "example": "여러 요청이 동시에 같은 값을 바꿀 때 레이스 컨디션이 생길 수 있어요."
+  },
+  "memory-leak": {
+    "term": "메모리 누수",
+    "aka": ["memory leak"],
+    "category": "코드 개념",
+    "def": "다 쓴 메모리를 놓아주지 않아 계속 쌓이는 문제입니다. 시간이 지나면 느려지거나 멈출 수 있어요.",
+    "example": "이벤트 리스너를 안 지우면 메모리 누수가 생길 수 있다고 지적받기도 합니다."
+  },
+  "regression": {
+    "term": "회귀 (Regression)",
+    "aka": ["regression", "리그레션"],
+    "category": "코드 개념",
+    "def": "잘 되던 기능이 이번 변경 때문에 다시 망가지는 것을 말합니다.",
+    "example": "\"이 수정이 기존 로그인에 회귀를 일으키진 않나요?\" 처럼 씁니다."
+  },
+  "hardcoding": {
+    "term": "하드코딩",
+    "aka": ["hardcoded", "하드코딩된"],
+    "category": "코드 개념",
+    "def": "값을 변수·설정으로 빼지 않고 코드 안에 직접 박아 넣는 것을 뜻합니다.",
+    "example": "\"이 URL은 하드코딩된 값이네요\" = 코드에 값이 그대로 적혀 있다는 지적."
+  },
+  "refactoring": {
+    "term": "리팩터링",
+    "aka": ["refactor", "리팩토링"],
+    "category": "코드 개념",
+    "def": "겉으로 보이는 동작은 그대로 두고, 코드 내부 구조만 바꾸는 작업을 말합니다.",
+    "example": "\"이건 기능 추가가 아니라 리팩터링만 한 PR이에요\" 처럼 구분해서 씁니다."
+  },
+  "boilerplate": {
+    "term": "보일러플레이트",
+    "aka": ["boilerplate"],
+    "category": "코드 개념",
+    "def": "거의 똑같이 반복되는, 형식적으로 꼭 써야 하는 기본 코드를 뜻합니다.",
+    "example": "설정 파일이나 초기화 코드처럼 매번 비슷하게 쓰는 부분을 보일러플레이트라 불러요."
+  },
+  "merge-conflict": {
+    "term": "컨플릭트 (충돌)",
+    "aka": ["merge conflict", "conflict", "머지 컨플릭트"],
+    "category": "협업·Git",
+    "def": "두 사람이 같은 부분을 다르게 고쳐, Git이 어느 쪽을 택할지 몰라 나는 충돌입니다.",
+    "example": "\"컨플릭트 나서 해결하고 다시 올릴게요\" = 충돌 부분을 직접 정리한다는 뜻."
+  },
+  "rebase": {
+    "term": "리베이스 (rebase)",
+    "aka": ["rebase"],
+    "category": "협업·Git",
+    "def": "내 브랜치의 커밋들을 최신 기준 브랜치 위로 옮겨 붙여, 커밋 이력을 깔끔하게 정리하는 방법입니다.",
+    "example": "\"main 최신 걸로 rebase 해주세요\" = 최신 코드 위에 내 작업을 다시 올려달라는 요청."
+  },
+  "squash": {
+    "term": "스쿼시 (squash)",
+    "aka": ["squash", "스쿼시 머지"],
+    "category": "협업·Git",
+    "def": "여러 개의 커밋을 하나로 합치는 것입니다. 머지할 때 이력을 한 줄로 정리할 때 많이 써요.",
+    "example": "\"커밋 많으니 squash 해서 머지할게요\" = 커밋들을 하나로 합쳐 병합한다는 뜻."
+  },
+  "cherry-pick": {
+    "term": "체리픽 (cherry-pick)",
+    "aka": ["cherry-pick", "체리 픽"],
+    "category": "협업·Git",
+    "def": "다른 브랜치에 있는 특정 커밋 하나만 골라 내 브랜치로 가져오는 것을 말합니다.",
+    "example": "\"그 버그 수정 커밋만 cherry-pick 해올게요\" 처럼 씁니다."
+  },
+  "diff": {
+    "term": "diff (변경 내용)",
+    "aka": ["diff", "디프"],
+    "category": "협업·Git",
+    "def": "바뀌기 전과 후의 차이를 줄 단위로 보여주는 것입니다. 초록(+)은 추가, 빨강(-)은 삭제예요.",
+    "example": "PR의 Files changed 탭에서 보는 초록/빨강 줄이 바로 diff입니다."
+  },
+  "staging": {
+    "term": "스테이징 (staging)",
+    "aka": ["staged", "git add", "스테이지"],
+    "category": "협업·Git",
+    "def": "커밋에 포함할 변경을 미리 담아 두는 대기 공간입니다. git add로 이 공간에 올려요.",
+    "example": "\"이 파일은 staging에 안 올라갔네요\" = 커밋 대상에 안 담겼다는 뜻."
+  }
+}

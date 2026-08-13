@@ -8,6 +8,21 @@ const MODEL = "gemini-flash-lite-latest";
 const ENDPOINT = (key) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
 
+// 용어사전(glossary.json)을 한 번만 읽어 캐시합니다.
+// content script는 확장 안의 파일을 직접 fetch 하려면 web_accessible_resources 등록이
+// 필요하지만, 여기 background(서비스 워커)는 자기 파일을 자유롭게 읽을 수 있어 이 경로가 깔끔합니다.
+let glossaryCache = null;
+async function getGlossary() {
+  if (glossaryCache) return { glossary: glossaryCache };
+  try {
+    const res = await fetch(chrome.runtime.getURL("glossary.json"));
+    glossaryCache = await res.json();
+    return { glossary: glossaryCache };
+  } catch (e) {
+    return { error: `용어사전 로드 실패: ${e.message}` };
+  }
+}
+
 // 이 키로 generateContent를 지원하는 모델 목록을 가져옵니다.
 async function listModels() {
   const { apiKey } = await chrome.storage.local.get(["apiKey"]);
@@ -40,8 +55,9 @@ const PROMPTS = {
     "'이 파일 = ...' 형식으로 20자 내외, 군더더기 없이.",
   // 질문 도우미: 리뷰 질문 초안
   question:
-    "당신은 코드 리뷰 조수입니다. 아래 코드 변경을 보고, 리뷰어가 작성자에게 물어볼 만한 " +
-    "정중한 한국어 질문 1개를 초안으로 쓰세요. 질문만 출력하세요.",
+    "당신은 10년 경력의 시니어 웹 프론트엔드 개발자입니다. 아래 코드 변경을 보고 작성자에게 던질 리뷰 질문 1개를 " +
+    "초안으로 쓰세요. side effect, 엣지 케이스, 성능, 의도, coupling, 멱등성 등 " +
+    "실무 관점에서 핵심을 찌르는 질문을 정중한 한국어로 작성하세요. 질문만 출력하세요.",
   // PR 본문 초안: 작성자용
   prBody:
     "당신은 코드 리뷰 조수입니다. 아래 커밋/변경 내용을 보고 GitHub PR 본문 초안을 " +
@@ -110,6 +126,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg && msg.action === "listModels") {
     listModels().then(sendResponse);
+    return true;
+  }
+  if (msg && msg.action === "glossary") {
+    getGlossary().then(sendResponse);
     return true;
   }
 });

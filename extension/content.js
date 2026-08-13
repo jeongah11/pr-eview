@@ -231,13 +231,24 @@ async function onQuestion(textarea, btn) {
 function enhanceTextareas() {
   document.querySelectorAll("textarea").forEach((t) => {
     if (t.dataset.previewQ || !isCommentTextarea(t)) return;
+    // PR 본문 칸은 작성용이라 '질문'이 아니라 F-04 '본문 초안'만 붙입니다(중복 방지).
+    if (t.name === "pull_request[body]" || t.id === "pull_request_body") return;
     t.dataset.previewQ = "1";
     const qbtn = document.createElement("button");
     qbtn.type = "button";
     qbtn.className = "preview-q-btn preview-ui";
     qbtn.textContent = "✨ 질문";
     qbtn.addEventListener("click", () => onQuestion(t, qbtn));
-    t.insertAdjacentElement("beforebegin", qbtn);
+    // 새 GitHub: 코멘트 입력창(.CommentBox-container, position:relative) 안 오른쪽 위에
+    // 고정폭으로 띄웁니다. textarea 오른쪽에 여백을 줘서 글자가 버튼 밑으로 들어가지 않게 합니다.
+    const container = t.closest(".CommentBox-container");
+    if (container) {
+      qbtn.classList.add("preview-q-float");
+      container.appendChild(qbtn);
+      t.style.paddingRight = "100px";
+    } else {
+      t.insertAdjacentElement("beforebegin", qbtn); // 구버전 fallback
+    }
   });
 }
 
@@ -258,7 +269,15 @@ function enhancePRBody() {
   btn.className = "preview-q-btn preview-ui";
   btn.textContent = "✨ 본문 초안";
   btn.addEventListener("click", () => onPRBody(body, btn));
-  body.insertAdjacentElement("beforebegin", btn);
+  // F-03과 동일하게 입력창 오른쪽 위 고정 배치(placeholder와 안 겹치게).
+  const container = body.closest(".CommentBox-container");
+  if (container) {
+    btn.classList.add("preview-q-float");
+    container.appendChild(btn);
+    body.style.paddingRight = "100px";
+  } else {
+    body.insertAdjacentElement("beforebegin", btn); // 구버전 fallback
+  }
 }
 
 async function onPRBody(body, btn) {
@@ -280,13 +299,159 @@ async function onPRBody(body, btn) {
   btn.textContent = original;
 }
 
-// ── 스캐너: 파일 요약 + 질문 + PR 본문 버튼을 함께 처리 (300ms 디바운스) ──
+// ── F-05 용어 hover 툴팁 ─────────────────────────────────────
+// 코멘트/PR 본문(.markdown-body)에 등장하는 리뷰 용어에 밑줄을 긋고,
+// 마우스를 올리면 뜻·예시를 말풍선으로 보여줍니다. 용어 데이터는 F-08 glossary.json.
+// diff 코드 트리는 GitHub가 자주 다시 그려(React) 우리가 넣은 요소와 충돌할 수 있어 건드리지 않습니다.
+
+let GLOSSARY = null; // {key: {term, aka, def, example, ...}}
+let TERM_RE = null; // 용어를 한 번에 찾는 정규식
+let TERM_MAP = null; // 소문자 매치 문자열 → 용어 key
+let tip = null; // 공용 툴팁 요소
+
+// background에게 용어사전을 한 번 요청 → 받으면 매처를 만들고 즉시 한 번 훑습니다.
+function loadGlossary() {
+  chrome.runtime.sendMessage({ action: "glossary" }, (res) => {
+    if (!res || res.error || !res.glossary) {
+      console.log("[PReview] 용어사전 로드 실패:", res && res.error);
+      return;
+    }
+    GLOSSARY = res.glossary;
+    buildMatcher();
+    console.log("[PReview] 용어사전 로드:", Object.keys(GLOSSARY).length, "개");
+    scan();
+  });
+}
+
+// 별칭(aka)+대표어로 매칭 후보를 모아 하나의 정규식을 만듭니다.
+function buildMatcher() {
+  TERM_MAP = {};
+  const forms = [];
+  for (const key of Object.keys(GLOSSARY)) {
+    const e = GLOSSARY[key];
+    const primary = e.term.split(" (")[0].trim(); // "회귀 (Regression)" → "회귀"
+    for (const cand of [primary, ...(e.aka || [])]) {
+      const s = (cand || "").trim();
+      if (!s) continue;
+      // 한글 2글자 이하 일반 단어(승인·충돌·회귀 등)는 오탐이 많아 제외 (영어 별칭으로 잡힘)
+      if (/[가-힣]/.test(s) && s.replace(/\s/g, "").length <= 2) continue;
+      const low = s.toLowerCase();
+      if (!(low in TERM_MAP)) {
+        TERM_MAP[low] = key;
+        forms.push(s);
+      }
+    }
+  }
+  forms.sort((a, b) => b.length - a.length); // 긴 표현을 먼저 매칭
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = forms.map((f) =>
+    // 영문은 앞뒤 글자 경계로 부분 매칭 방지, 한글은 그대로
+    /^[A-Za-z]/.test(f) ? `(?<![A-Za-z])${esc(f)}(?![A-Za-z])` : esc(f)
+  );
+  TERM_RE = new RegExp(parts.join("|"), "gi");
+}
+
+function enhanceGlossary() {
+  if (!TERM_RE) return;
+  document.querySelectorAll(".markdown-body").forEach((c) => {
+    if (c.dataset.previewGloss) return;
+    c.dataset.previewGloss = "1";
+    try {
+      decorateTerms(c);
+    } catch (e) {
+      /* React가 관리하는 DOM과 충돌하면 조용히 넘어갑니다 */
+    }
+  });
+}
+
+// 컨테이너의 텍스트 노드를 훑어 용어가 든 노드만 골라 감쌉니다.
+function decorateTerms(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      const p = node.parentNode;
+      if (!p) return NodeFilter.FILTER_REJECT;
+      const tag = p.nodeName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "A") return NodeFilter.FILTER_REJECT;
+      if (p.closest(".preview-term, textarea, input")) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  const targets = [];
+  let n;
+  while ((n = walker.nextNode())) {
+    TERM_RE.lastIndex = 0;
+    if (TERM_RE.test(n.nodeValue)) targets.push(n);
+  }
+  targets.forEach(wrapMatches);
+}
+
+// 텍스트 노드 하나를 [텍스트…][용어 span][텍스트…] 조각들로 교체합니다.
+function wrapMatches(node) {
+  const text = node.nodeValue;
+  const frag = document.createDocumentFragment();
+  TERM_RE.lastIndex = 0;
+  let m, last = 0;
+  while ((m = TERM_RE.exec(text))) {
+    const key = TERM_MAP[m[0].toLowerCase()];
+    if (!key) continue;
+    if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+    const span = document.createElement("span");
+    span.className = "preview-term";
+    span.textContent = m[0];
+    span.dataset.termKey = key;
+    frag.appendChild(span);
+    last = m.index + m[0].length;
+  }
+  if (last === 0) return; // 실제 매치 없음
+  if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+  node.parentNode.replaceChild(frag, node);
+}
+
+// 용어에 마우스를 올리면 공용 툴팁을 띄웁니다 (이벤트 위임 — 한 번만 등록).
+function ensureTip() {
+  if (tip) return;
+  tip = document.createElement("div");
+  tip.id = "preview-tooltip";
+  tip.className = "preview-ui";
+  tip.style.display = "none";
+  document.body.appendChild(tip);
+}
+document.addEventListener("mouseover", (e) => {
+  const t = e.target.closest && e.target.closest(".preview-term");
+  if (!t || !GLOSSARY) return;
+  const entry = GLOSSARY[t.dataset.termKey];
+  if (!entry) return;
+  ensureTip();
+  tip.innerHTML = "";
+  const term = document.createElement("div");
+  term.className = "preview-tip-term";
+  term.textContent = entry.term;
+  const def = document.createElement("div");
+  def.className = "preview-tip-def";
+  def.textContent = entry.def;
+  const ex = document.createElement("div");
+  ex.className = "preview-tip-ex";
+  ex.textContent = entry.example;
+  tip.append(term, def, ex);
+  const r = t.getBoundingClientRect();
+  tip.style.top = window.scrollY + r.bottom + 6 + "px";
+  tip.style.left = window.scrollX + r.left + "px";
+  tip.style.display = "block";
+});
+document.addEventListener("mouseout", (e) => {
+  if (e.target.closest && e.target.closest(".preview-term") && tip) tip.style.display = "none";
+});
+
+// ── 스캐너: 파일 요약 + 질문 + PR 본문 + 용어 하이라이트를 함께 처리 (300ms 디바운스) ──
 function scan() {
   enhanceFiles();
   enhanceTextareas();
   enhancePRBody();
+  enhanceGlossary();
 }
 scan();
+loadGlossary(); // 용어사전을 받아오면 콜백에서 다시 scan() 합니다.
 let scanTimer = null;
 new MutationObserver(() => {
   clearTimeout(scanTimer);

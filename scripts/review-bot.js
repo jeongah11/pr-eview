@@ -10,6 +10,9 @@
 
 const fs = require("fs");
 
+// F-08 용어사전 — 확장과 같은 단일 파일을 봇도 읽습니다(한 파일 = 하나의 진실).
+const GLOSSARY = require("../extension/glossary.json");
+
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const REPO = process.env.GITHUB_REPOSITORY;
@@ -58,15 +61,56 @@ async function getDiff(owner, repo, num) {
   return await res.text();
 }
 
+// 용어사전 매처를 만듭니다. 확장(content.js)과 같은 규칙:
+// 별칭(aka)+대표어를 쓰되, 한글 2글자 이하 일반 단어(승인·충돌 등)는 오탐이 많아 제외.
+function buildTermMatcher() {
+  const map = {};
+  const forms = [];
+  for (const key of Object.keys(GLOSSARY)) {
+    const e = GLOSSARY[key];
+    const primary = e.term.split(" (")[0].trim();
+    for (const cand of [primary, ...(e.aka || [])]) {
+      const s = (cand || "").trim();
+      if (!s) continue;
+      if (/[가-힣]/.test(s) && s.replace(/\s/g, "").length <= 2) continue;
+      const low = s.toLowerCase();
+      if (!(low in map)) {
+        map[low] = key;
+        forms.push(s);
+      }
+    }
+  }
+  forms.sort((a, b) => b.length - a.length);
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const parts = forms.map((f) =>
+    /^[A-Za-z]/.test(f) ? `(?<![A-Za-z])${esc(f)}(?![A-Za-z])` : esc(f)
+  );
+  return { re: new RegExp(parts.join("|"), "gi"), map };
+}
+
+// 리뷰 댓글 본문에 등장한 용어를 모아 "용어 노트" 마크다운을 만듭니다(없으면 빈 문자열).
+function glossaryNotes(text) {
+  const { re, map } = buildTermMatcher();
+  const seen = new Set();
+  let m;
+  while ((m = re.exec(text))) seen.add(map[m[0].toLowerCase()]);
+  if (!seen.size) return "";
+  const lines = [...seen].map((key) => `- **${GLOSSARY[key].term}**: ${GLOSSARY[key].def}`);
+  return ["", "### 📖 용어 노트", ...lines].join("\n");
+}
+
 // 시니어 개발자 페르소나로 리뷰 시동 댓글 본문 생성
 async function askGemini(title, diff) {
   const system =
-    "당신은 후배 개발자들의 코드 리뷰를 돕는 따뜻하고 노련한 시니어 개발자입니다. " +
-    "코드를 요약하지 말고, 리뷰어들이 '무엇을 어떻게 봐야 할지' 짚어 주세요. " +
+    "당신은 15년 경력의 시니어 웹 프론트엔드 개발자입니다. 후배 팀원들의 PR 리뷰를 리드합니다. " +
+    "코드 요약은 하지 마세요. 리뷰어가 '어디를, 왜 집중해서 봐야 하는지'를 짚어 주세요. " +
+    "side effect, race condition, 멱등성, SRP, coupling, O(n) 복잡도, 엣지 케이스, " +
+    "tech debt, 네이밍 컨벤션, 테스트 커버리지 등 실무 용어를 맥락에 맞게 자연스럽게 사용하세요. " +
+    "모호한 칭찬은 생략하고, 구체적이고 직접적으로 서술하세요. " +
     "다음 한국어 마크다운 형식으로만 답하세요:\n\n" +
-    "### 🔍 집중해서 볼 포인트\n- (특히 확인할 변경점 2~4개, 각 한 줄, 왜 중요한지 포함)\n\n" +
-    "### 💬 이런 걸 물어보면 좋아요\n- (작성자에게 던질 리뷰 질문 2~3개)\n\n" +
-    "### 🧠 이해 점검 (권장, 답은 선택)\n- (이 변경을 이해했는지 확인하는 질문 3개)";
+    "### 🔍 집중해서 볼 포인트\n- (변경점 2~4개, 각 한 줄, 왜 중요한지·어떤 리스크가 있는지 포함)\n\n" +
+    "### 💬 이런 걸 물어보면 좋아요\n- (작성자에게 던질 날카로운 리뷰 질문 2~3개)\n\n" +
+    "### 🧠 이해 점검 (권장, 답은 선택)\n- (이 변경을 제대로 이해했는지 확인하는 질문 3개)";
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`,
@@ -84,10 +128,12 @@ async function askGemini(title, diff) {
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
   if (!text) fail("Gemini 응답이 비어 있습니다.");
 
+  const notes = glossaryNotes(text); // 본문에 나온 리뷰 용어가 있을 때만 각주 추가
   return [
     "🤖 **PReview 리뷰 봇**이에요. 리뷰 시작에 참고하세요!",
     "",
     text,
+    ...(notes ? [notes] : []),
     "",
     "---",
     "> 이 댓글 스레드에 대댓글로 리뷰를 진행하면 그대로 리뷰 기록이 됩니다.",
