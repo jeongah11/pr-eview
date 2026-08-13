@@ -231,6 +231,8 @@ async function onQuestion(textarea, btn) {
 function enhanceTextareas() {
   document.querySelectorAll("textarea").forEach((t) => {
     if (t.dataset.previewQ || !isCommentTextarea(t)) return;
+    // PR 본문 칸은 작성용이라 '질문'이 아니라 F-04 '본문 초안'만 붙입니다(중복 방지).
+    if (t.name === "pull_request[body]" || t.id === "pull_request_body") return;
     t.dataset.previewQ = "1";
     const qbtn = document.createElement("button");
     qbtn.type = "button";
@@ -267,7 +269,15 @@ function enhancePRBody() {
   btn.className = "preview-q-btn preview-ui";
   btn.textContent = "✨ 본문 초안";
   btn.addEventListener("click", () => onPRBody(body, btn));
-  body.insertAdjacentElement("beforebegin", btn);
+  // F-03과 동일하게 입력창 오른쪽 위 고정 배치(placeholder와 안 겹치게).
+  const container = body.closest(".CommentBox-container");
+  if (container) {
+    btn.classList.add("preview-q-float");
+    container.appendChild(btn);
+    body.style.paddingRight = "100px";
+  } else {
+    body.insertAdjacentElement("beforebegin", btn); // 구버전 fallback
+  }
 }
 
 async function onPRBody(body, btn) {
