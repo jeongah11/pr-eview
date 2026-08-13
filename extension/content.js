@@ -290,13 +290,18 @@ async function onPRBody(body, btn) {
   blocks.forEach((b) => { ctx += getFileDiffText(b, mode) + "\n\n"; });
   ctx = (ctx.trim() || document.title).slice(0, 8000);
 
-  const res = await chrome.runtime.sendMessage({ action: "ai", type: "prBody", text: ctx });
-  btn.disabled = false;
-  if (!res) return flash(btn, "⚠️ 새로고침", original);
-  if (res.error === "NO_KEY") return flash(btn, "⚠️ 키 설정", original);
-  if (res.error) return flash(btn, "⚠️ 오류", original);
-  insertIntoTextarea(body, res.text);
-  btn.textContent = original;
+  try {
+    const res = await chrome.runtime.sendMessage({ action: "ai", type: "prBody", text: ctx });
+    btn.disabled = false;
+    if (!res) return flash(btn, "⚠️ 새로고침", original);
+    if (res.error === "NO_KEY") return flash(btn, "⚠️ 키 설정", original);
+    if (res.error) return flash(btn, "⚠️ 오류", original);
+    insertIntoTextarea(body, res.text);
+    btn.textContent = original;
+  } catch {
+    btn.disabled = false;
+    flash(btn, "⚠️ 새로고침", original);
+  }
 }
 
 // ── F-05 용어 hover 툴팁 ─────────────────────────────────────
